@@ -1,0 +1,17 @@
+node_modules
+apps/api/node_modules
+apps/web/node_modules
+apps/api/dist
+apps/web/.next
+.git
+.gitignore
+*.md
+.env
+.env.local
+*.log
+coverage
+test
+*.test.ts
+*.spec.ts
+order-test.pdf
+quotation-test.pdf
