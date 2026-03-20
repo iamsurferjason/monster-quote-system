@@ -21,8 +21,9 @@ RUN npm ci
 COPY apps/api/package.json apps/api/package-lock.json ./apps/api/
 RUN cd apps/api && npm ci
 
-# Copy Prisma schema and generate client
+# Copy Prisma schema and config, then generate client
 COPY prisma/ ./prisma/
+COPY prisma.config.ts ./
 RUN npx prisma generate
 
 # Copy API source and build
