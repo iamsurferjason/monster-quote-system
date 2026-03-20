@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "seed": "tsx prisma/seed.ts"
-  },
+"scripts": {
+  "start": "nest start",
+  "start:dev": "nest start --watch",
+  "build": "nest build",
+  "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+  "test": "jest",
+  "seed": "tsx prisma/seed.ts",
+  "seed:dev": "tsx prisma/seed-dev.ts"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",

@@ -1,0 +1,30 @@
+### 建立報價 (POST)
+POST http://localhost:3000/quotations
+Content-Type: application/json
+
+{
+  "customerId": "你的customerId",
+  "createdById": "你的userId",
+  "items": [
+    {
+      "productName": "Workerz Exit 工具腰包",
+      "qty": 2,
+      "unitPrice": 1500,
+      "discountRate": 10
+    }
+  ]
+}
+
+### 查全部報價 (GET)
+GET http://localhost:3000/quotations
+
+### 查單筆報價 (GET)
+GET http://localhost:3000/quotations/e42caaf5-ada5-41c0-98a3-be5eec384e49
+
+### 更新報價狀態 (PATCH - DRAFT → SENT)
+PATCH http://localhost:3000/quotations/e42caaf5-ada5-41c0-98a3-be5eec384e49/status
+Content-Type: application/json
+
+{
+  "status": "SENT"
+}

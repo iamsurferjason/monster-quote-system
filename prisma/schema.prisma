@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -78,6 +73,39 @@ enum AuditAction {
   CONVERT
 }
 
+enum TradeMode {
+  DOMESTIC
+  IMPORT
+  EXPORT
+  TRIANGULAR
+}
+
+enum Incoterm {
+  EXW
+  FOB
+  CFR
+  CIF
+  FCA
+  CPT
+  CIP
+  DAP
+  DDP
+}
+
+enum CustomerType {
+  DOMESTIC
+  OVERSEAS
+  DISTRIBUTOR
+  END_CUSTOMER
+}
+
+enum LanguageCode {
+  ZH_TW
+  EN
+  JA
+  ZH_CN
+}
+
 model User {
   id           String     @id @default(uuid())
   email        String     @unique
@@ -119,13 +147,19 @@ model Customer {
   id              String         @id @default(uuid())
   customerCode    String         @unique
   companyName     String
+  customerType    CustomerType   @default(DOMESTIC)
+  countryCode     String?        @db.VarChar(2)
+  language        LanguageCode?  @default(ZH_TW)
   taxId           String?
   address         String?
+  billingAddress  String?
+  shippingAddress String?
   phone           String?
   email           String?
   defaultCurrency CurrencyCode   @default(TWD)
   taxType         TaxType        @default(TAXABLE)
   paymentTerms    String?
+  incotermDefault Incoterm?
   creditLimit     Decimal?       @db.Decimal(15, 2)
   status          CustomerStatus @default(ACTIVE)
   createdAt       DateTime       @default(now())
@@ -146,33 +180,46 @@ model CustomerContact {
 }
 
 model Product {
-  id          String        @id @default(uuid())
-  sku         String        @unique
-  name        String
-  brand       String?
-  spec        String?
-  unit        String        @default("pcs")
-  costPrice   Decimal?      @db.Decimal(15, 2)
-  listPrice   Decimal       @db.Decimal(15, 2)
-  dealerPrice Decimal?      @db.Decimal(15, 2)
-  minPrice    Decimal?      @db.Decimal(15, 2)
-  status      ProductStatus @default(ACTIVE)
-  createdAt   DateTime      @default(now())
+  id                String        @id @default(uuid())
+  sku               String        @unique
+  name              String
+  brand             String?
+  spec              String?
+  unit              String        @default("pcs")
+  originCountry     String?       @db.VarChar(2)
+  hsCode            String?
+  exportDescription String?
+  costPrice         Decimal?      @db.Decimal(15, 2)
+  listPrice         Decimal       @db.Decimal(15, 2)
+  dealerPrice       Decimal?      @db.Decimal(15, 2)
+  minPrice          Decimal?      @db.Decimal(15, 2)
+  status            ProductStatus @default(ACTIVE)
+  createdAt         DateTime      @default(now())
 
   quotationItems QuotationItem[]
   orderItems     OrderItem[]
 }
 
 model Quotation {
-  id          String          @id @default(uuid())
-  quotationNo String          @unique
-  customerId  String
-  createdById String
-  status      QuotationStatus @default(DRAFT)
-  subtotal    Decimal         @db.Decimal(15, 2)
-  taxAmount   Decimal         @db.Decimal(15, 2)
-  totalAmount Decimal         @db.Decimal(15, 2)
-  createdAt   DateTime        @default(now())
+  id              String          @id @default(uuid())
+  quotationNo     String          @unique
+  customerId      String
+  createdById     String
+  tradeMode       TradeMode       @default(DOMESTIC)
+  currencyCode    CurrencyCode    @default(TWD)
+  exchangeRate    Decimal         @default(1) @db.Decimal(12, 4)
+  incoterm        Incoterm?
+  shipFromCountry String?         @db.VarChar(2)
+  shipToCountry   String?         @db.VarChar(2)
+  loadingPort     String?
+  dischargePort   String?
+  paymentTerm     String?
+  validityDate    DateTime?
+  status          QuotationStatus @default(DRAFT)
+  subtotal        Decimal         @db.Decimal(15, 2)
+  taxAmount       Decimal         @db.Decimal(15, 2)
+  totalAmount     Decimal         @db.Decimal(15, 2)
+  createdAt       DateTime        @default(now())
 
   customer  Customer            @relation(fields: [customerId], references: [id], onDelete: Restrict)
   createdBy User                @relation("QuotationCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
@@ -220,18 +267,27 @@ model QuotationApproval {
 }
 
 model Order {
-  id          String      @id @default(uuid())
-  orderNo     String      @unique
-  quotationId String?
-  customerId  String
-  createdById String
-  totalAmount Decimal     @db.Decimal(15, 2)
-  status      OrderStatus @default(DRAFT)
-  createdAt   DateTime    @default(now())
+  id              String       @id @default(uuid())
+  orderNo         String       @unique
+  quotationId     String?
+  customerId      String
+  createdById     String
+  tradeMode       TradeMode    @default(DOMESTIC)
+  currencyCode    CurrencyCode @default(TWD)
+  exchangeRate    Decimal      @default(1) @db.Decimal(12, 4)
+  incoterm        Incoterm?
+  shipFromCountry String?      @db.VarChar(2)
+  shipToCountry   String?      @db.VarChar(2)
+  loadingPort     String?
+  dischargePort   String?
+  paymentTerm     String?
+  totalAmount     Decimal      @db.Decimal(15, 2)
+  status          OrderStatus  @default(DRAFT)
+  createdAt       DateTime     @default(now())
 
-  customer  Customer    @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  quotation Quotation?  @relation(fields: [quotationId], references: [id], onDelete: SetNull)
-  createdBy User        @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  customer  Customer   @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  quotation Quotation? @relation(fields: [quotationId], references: [id], onDelete: SetNull)
+  createdBy User       @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   items     OrderItem[]
 }
 
