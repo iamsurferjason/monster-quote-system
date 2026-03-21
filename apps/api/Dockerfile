@@ -18,8 +18,8 @@ COPY package.json package-lock.json* ./
 RUN npm ci
 
 # Install API-level dependencies
-COPY apps/api/package.json apps/api/package-lock.json ./apps/api/
-RUN cd apps/api && npm ci
+COPY apps/api/package.json apps/api/package-lock.json* ./apps/api/
+RUN cd apps/api && npm install --no-fund --no-audit
 
 # Copy Prisma schema and config, then generate client
 COPY prisma/ ./prisma/
