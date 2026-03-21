@@ -23,7 +23,7 @@ RUN cd apps/api && npm install --no-fund --no-audit
 
 # Copy Prisma schema and config, then generate client
 COPY prisma/ ./prisma/
-COPY prisma.config.ts ./
+COPY prisma.config.ts prisma.config.mjs ./
 RUN npx prisma generate
 
 # Copy API source and build
@@ -54,7 +54,7 @@ COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/api/package.json ./apps/api/
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/prisma.config.ts ./
+COPY --from=builder /app/prisma.config.mjs ./
 
 EXPOSE 3000
 

@@ -45,7 +45,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
     command: >
-      sh -c "npx prisma migrate deploy --schema=/app/prisma/schema.prisma"
+      sh -c "echo '=== DATABASE_URL CHECK ===' && echo $$DATABASE_URL && echo '=========================' && npx prisma migrate deploy"
     depends_on:
       db:
         condition: service_healthy
