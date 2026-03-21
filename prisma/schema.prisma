@@ -121,6 +121,7 @@ model User {
   ordersCreated      Order[]             @relation("OrderCreatedBy")
   quotationApprovals QuotationApproval[]
   auditLogs          AuditLog[]
+  purchaseOrders     PurchaseOrder[]     @relation("POCreatedBy")
 }
 
 model Role {
@@ -197,8 +198,9 @@ model Product {
   status            ProductStatus @default(ACTIVE)
   createdAt         DateTime      @default(now())
 
-  quotationItems QuotationItem[]
-  orderItems     OrderItem[]
+  quotationItems     QuotationItem[]
+  orderItems         OrderItem[]
+  purchaseOrderItems PurchaseOrderItem[]
 }
 
 model Quotation {
@@ -338,7 +340,8 @@ model Supplier {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  contacts SupplierContact[]
+  contacts       SupplierContact[]
+  purchaseOrders PurchaseOrder[]
 }
 
 model SupplierContact {
@@ -350,4 +353,51 @@ model SupplierContact {
   email      String?
 
   supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+}
+
+// ── Phase 3：採購單 ────────────────────────────────────────────────────────────
+
+enum PurchaseOrderStatus {
+  DRAFT
+  SENT
+  CONFIRMED
+  PARTIAL_RECEIVED
+  RECEIVED
+  CANCELLED
+}
+
+model PurchaseOrder {
+  id            String              @id @default(uuid())
+  poNo          String              @unique
+  supplierId    String
+  createdById   String
+  currencyCode  CurrencyCode        @default(TWD)
+  exchangeRate  Decimal             @default(1) @db.Decimal(12, 4)
+  incoterm      Incoterm?
+  paymentTerm   String?
+  deliveryDate  DateTime?
+  warehouseNote String?
+  status        PurchaseOrderStatus @default(DRAFT)
+  subtotal      Decimal             @db.Decimal(15, 2)
+  taxAmount     Decimal             @db.Decimal(15, 2)
+  totalAmount   Decimal             @db.Decimal(15, 2)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  supplier  Supplier            @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  createdBy User                @relation("POCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  items     PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id              String  @id @default(uuid())
+  purchaseOrderId String
+  productId       String?
+  productName     String
+  qty             Decimal @db.Decimal(12, 2)
+  unitPrice       Decimal @db.Decimal(15, 2)
+  amount          Decimal @db.Decimal(15, 2)
+
+  purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  product       Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
 }
