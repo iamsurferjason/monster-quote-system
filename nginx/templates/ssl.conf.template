@@ -1,0 +1,65 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Agent C – Nginx HTTPS Reverse Proxy（Let's Encrypt SSL）
+# 此檔案由 init-letsencrypt.sh 啟用
+# nginx Docker image 會自動將 ${DOMAIN} 替換為 .env 中的 DOMAIN 值
+# ──────────────────────────────────────────────────────────────────────────────
+
+# ── HTTP → HTTPS 重定向 ────────────────────────────────────────────────────────
+server {
+    listen 80;
+    server_name ${DOMAIN};
+
+    # Let's Encrypt ACME challenge（certbot 自動續期使用）
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+# ── HTTPS ──────────────────────────────────────────────────────────────────────
+server {
+    listen 443 ssl;
+    server_name ${DOMAIN};
+
+    # SSL 憑證（由 certbot 產生）
+    ssl_certificate     /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+
+    # 現代 SSL 設定
+    ssl_protocols             TLSv1.2 TLSv1.3;
+    ssl_ciphers               ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:DHE-RSA-AES128-GCM-SHA256;
+    ssl_prefer_server_ciphers off;
+    ssl_session_timeout       1d;
+    ssl_session_cache         shared:SSL:10m;
+    ssl_session_tickets       off;
+
+    # HSTS（啟用後瀏覽器會強制 HTTPS，請確認 HTTPS 穩定後再開啟）
+    # add_header Strict-Transport-Security "max-age=63072000" always;
+
+    # ── Frontend（Next.js）──────────────────────────────────────────────────
+    location / {
+        proxy_pass         http://web:3001;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade $http_upgrade;
+        proxy_set_header   Connection 'upgrade';
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+
+    # ── API（NestJS），移除 /api 前綴後轉發）────────────────────────────────
+    location /api/ {
+        rewrite            ^/api/(.*) /$1 break;
+        proxy_pass         http://api:3000;
+        proxy_http_version 1.1;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
+}

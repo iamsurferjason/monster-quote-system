@@ -11,6 +11,9 @@ networks:
 
 volumes:
   postgres-data:
+  certbot-webroot:    # Let's Encrypt ACME challenge webroot
+  certbot-certs:      # Let's Encrypt 憑證存放
+  backup-data:        # PostgreSQL 備份檔案
 
 services:
 
@@ -94,5 +97,75 @@ services:
       - "${WEB_PORT:-3001}:3001"
     depends_on:
       - api
+    networks:
+      - monster-net
+
+  # ── Agent C：Nginx Reverse Proxy ──────────────────────────────────────────────
+  # HTTP 模式：直接 reverse proxy（預設）
+  # HTTPS 模式：執行 bash scripts/init-letsencrypt.sh 後自動切換
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: monster-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro          # HTTP-only 設定
+      - ./nginx/templates:/etc/nginx/templates:ro    # HTTPS template（SSL 啟用後生效）
+      - certbot-webroot:/var/www/certbot:ro           # ACME challenge
+      - certbot-certs:/etc/letsencrypt:ro             # SSL 憑證
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    depends_on:
+      - api
+      - web
+    networks:
+      - monster-net
+
+  # ── Agent C：Certbot（Let's Encrypt 憑證管理）─────────────────────────────────
+  # 初次申請：bash scripts/init-letsencrypt.sh
+  # 自動續期：每 12 小時嘗試 renew
+  certbot:
+    image: certbot/certbot:latest
+    container_name: monster-certbot
+    volumes:
+      - certbot-webroot:/var/www/certbot
+      - certbot-certs:/etc/letsencrypt
+    # 每 12 小時嘗試自動續期
+    entrypoint: >
+      /bin/sh -c "trap exit TERM;
+        while :; do
+          certbot renew --webroot -w /var/www/certbot --quiet;
+          sleep 12h & wait $${!};
+        done"
+    networks:
+      - monster-net
+
+  # ── Agent D：PostgreSQL 自動備份 ──────────────────────────────────────────────
+  # 預設：每天凌晨 2:00 備份，保留 7 天
+  # 備份位置：backup-data volume（/backups/）
+  # 手動觸發：docker compose exec db-backup /scripts/db-backup.sh
+  db-backup:
+    image: postgres:16-alpine
+    container_name: monster-db-backup
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: db
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+    volumes:
+      - ./scripts/db-backup.sh:/scripts/db-backup.sh:ro
+      - ./scripts/backup-crontab:/etc/crontabs/root:ro
+      - backup-data:/backups
+    entrypoint: >
+      sh -c "chmod +x /scripts/db-backup.sh &&
+             echo '✅ DB Backup 排程已啟動（每天 02:00）' &&
+             crond -f -l 2"
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - monster-net
