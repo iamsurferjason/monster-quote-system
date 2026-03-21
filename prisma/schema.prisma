@@ -315,3 +315,39 @@ model AuditLog {
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
+
+enum SupplierStatus {
+  ACTIVE
+  INACTIVE
+}
+
+model Supplier {
+  id              String         @id @default(uuid())
+  supplierCode    String         @unique
+  companyName     String
+  taxId           String?
+  address         String?
+  phone           String?
+  email           String?
+  bankName        String?
+  bankCode        String?
+  bankAccount     String?
+  bankAccountName String?
+  paymentTerms    String?
+  status          SupplierStatus @default(ACTIVE)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  contacts SupplierContact[]
+}
+
+model SupplierContact {
+  id         String  @id @default(uuid())
+  supplierId String
+  name       String
+  title      String?
+  phone      String?
+  email      String?
+
+  supplier Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+}
