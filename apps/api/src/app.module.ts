@@ -10,6 +10,7 @@ import { QuotationsModule } from './quotations/quotations.module';
 import { CustomersModule } from './customers/customers.module';
 import { ProductsModule } from './products/products.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     CustomersModule,
     ProductsModule,
     DashboardModule,
+    SuppliersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
