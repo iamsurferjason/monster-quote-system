@@ -169,6 +169,7 @@ model Customer {
   contacts   CustomerContact[]
   quotations Quotation[]
   orders     Order[]
+  invoices   Invoice[]
 }
 
 model CustomerContact {
@@ -292,6 +293,8 @@ model Order {
   quotation Quotation? @relation(fields: [quotationId], references: [id], onDelete: SetNull)
   createdBy User       @relation("OrderCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
   items     OrderItem[]
+  shipments Shipment[]
+  invoices  Invoice[]
 }
 
 model OrderItem {
@@ -400,4 +403,81 @@ model PurchaseOrderItem {
 
   purchaseOrder PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
   product       Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+}
+
+// ── Phase 4：出貨/物流追蹤 ────────────────────────────────────────────────────
+
+enum ShipmentStatus {
+  PREPARING
+  SHIPPED
+  IN_TRANSIT
+  CUSTOMS_CLEARANCE
+  DELIVERED
+  RETURNED
+}
+
+model Shipment {
+  id               String         @id @default(uuid())
+  shipmentNo       String         @unique
+  orderId          String
+  carrier          String?
+  trackingNo       String?
+  shippingDate     DateTime?
+  estimatedArrival DateTime?
+  actualArrival    DateTime?
+  originCountry    String?        @db.VarChar(2)
+  destCountry      String?        @db.VarChar(2)
+  weight           Decimal?       @db.Decimal(10, 2)
+  packageCount     Int?
+  status           ShipmentStatus @default(PREPARING)
+  notes            String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+}
+
+// ── Phase 5：財務對帳 ─────────────────────────────────────────────────────────
+
+enum InvoiceStatus {
+  DRAFT
+  ISSUED
+  PARTIAL_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model Invoice {
+  id          String        @id @default(uuid())
+  invoiceNo   String        @unique
+  orderId     String?
+  customerId  String
+  issueDate   DateTime      @default(now())
+  dueDate     DateTime?
+  subtotal    Decimal       @db.Decimal(15, 2)
+  taxAmount   Decimal       @db.Decimal(15, 2)
+  totalAmount Decimal       @db.Decimal(15, 2)
+  paidAmount  Decimal       @default(0) @db.Decimal(15, 2)
+  status      InvoiceStatus @default(DRAFT)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  order    Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  customer Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  payments PaymentRecord[]
+}
+
+model PaymentRecord {
+  id          String   @id @default(uuid())
+  invoiceId   String
+  amount      Decimal  @db.Decimal(15, 2)
+  paymentDate DateTime
+  method      String?
+  reference   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 }

@@ -32,6 +32,12 @@ export default function AppNavbar() {
   <Link href="/purchase-orders" className="rounded border px-3 py-2 text-sm">
     採購
   </Link>
+  <Link href="/shipments" className="rounded border px-3 py-2 text-sm">
+    出貨
+  </Link>
+  <Link href="/invoices" className="rounded border px-3 py-2 text-sm">
+    財務
+  </Link>
   <Link href="/suppliers" className="rounded border px-3 py-2 text-sm">
     供應商
   </Link>
