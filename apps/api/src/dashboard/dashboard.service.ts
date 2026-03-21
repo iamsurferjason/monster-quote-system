@@ -11,26 +11,57 @@ export class DashboardService {
       orderCount,
       pendingApprovalCount,
       completedOrderCount,
+      purchaseOrderCount,
+      draftPOCount,
+      shipmentCount,
+      inTransitCount,
+      deliveredCount,
+      overdueInvoiceCount,
+      pendingInvoiceAgg,
+      paidInvoiceAgg,
     ] = await Promise.all([
       this.prisma.quotation.count(),
       this.prisma.order.count(),
-      this.prisma.quotation.count({
-        where: {
-          status: 'SENT',
-        },
+      this.prisma.quotation.count({ where: { status: 'SENT' } }),
+      this.prisma.order.count({ where: { status: 'COMPLETED' } }),
+      // Phase 3 採購單
+      this.prisma.purchaseOrder.count(),
+      this.prisma.purchaseOrder.count({ where: { status: 'DRAFT' } }),
+      // Phase 4 出貨
+      this.prisma.shipment.count(),
+      this.prisma.shipment.count({
+        where: { status: { in: ['SHIPPED', 'IN_TRANSIT', 'CUSTOMS_CLEARANCE'] } },
       }),
-      this.prisma.order.count({
-        where: {
-          status: 'COMPLETED',
-        },
+      this.prisma.shipment.count({ where: { status: 'DELIVERED' } }),
+      // Phase 5 財務
+      this.prisma.invoice.count({ where: { status: 'OVERDUE' } }),
+      this.prisma.invoice.aggregate({
+        where: { status: { in: ['ISSUED', 'PARTIAL_PAID', 'OVERDUE'] } },
+        _sum: { totalAmount: true, paidAmount: true },
+      }),
+      this.prisma.invoice.aggregate({
+        where: { status: 'PAID' },
+        _sum: { totalAmount: true },
       }),
     ]);
+
+    const pendingInvoiceAmount =
+      Number(pendingInvoiceAgg._sum.totalAmount ?? 0) -
+      Number(pendingInvoiceAgg._sum.paidAmount ?? 0);
 
     return {
       quotationCount,
       orderCount,
       pendingApprovalCount,
       completedOrderCount,
+      purchaseOrderCount,
+      draftPOCount,
+      shipmentCount,
+      inTransitCount,
+      deliveredCount,
+      overdueInvoiceCount,
+      pendingInvoiceAmount,
+      paidInvoiceAmount: Number(paidInvoiceAgg._sum.totalAmount ?? 0),
     };
   }
 
@@ -48,10 +79,19 @@ export class DashboardService {
       },
     });
 
+    const [poCount, shipCount, invoiceCount] = await Promise.all([
+      this.prisma.purchaseOrder.count(),
+      this.prisma.shipment.count(),
+      this.prisma.invoice.count(),
+    ]);
+
     return {
       totalsChart: [
         { label: '報價', value: quotationCount },
         { label: '訂單', value: orderCount },
+        { label: '採購單', value: poCount },
+        { label: '出貨', value: shipCount },
+        { label: '發票', value: invoiceCount },
       ],
       orderStatusChart: orderStatusGroups.map((item) => ({
         label: item.status,

@@ -22,6 +22,14 @@ type DashboardSummary = {
   orderCount: number;
   pendingApprovalCount: number;
   completedOrderCount: number;
+  purchaseOrderCount: number;
+  draftPOCount: number;
+  shipmentCount: number;
+  inTransitCount: number;
+  deliveredCount: number;
+  overdueInvoiceCount: number;
+  pendingInvoiceAmount: number;
+  paidInvoiceAmount: number;
 };
 
 type ChartItem = {
@@ -163,7 +171,81 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
-      
+
+      {/* Phase 3: 採購 */}
+      <div className="mb-2">
+        <h2 className="text-lg font-semibold text-gray-300">採購</h2>
+      </div>
+      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-gray-700 bg-gray-900 p-6">
+          <p className="text-sm text-gray-400">採購單總數</p>
+          <p className="mt-3 text-3xl font-bold text-purple-400">
+            {summary.purchaseOrderCount}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-700 bg-gray-900 p-6">
+          <p className="text-sm text-gray-400">草稿待處理</p>
+          <p className="mt-3 text-3xl font-bold text-orange-400">
+            {summary.draftPOCount}
+          </p>
+        </div>
+      </div>
+
+      {/* Phase 4: 出貨追蹤 */}
+      <div className="mb-2">
+        <h2 className="text-lg font-semibold text-gray-300">出貨追蹤</h2>
+      </div>
+      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-gray-700 bg-gray-900 p-6">
+          <p className="text-sm text-gray-400">出貨單總數</p>
+          <p className="mt-3 text-3xl font-bold text-blue-400">
+            {summary.shipmentCount}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-700 bg-gray-900 p-6">
+          <p className="text-sm text-gray-400">運輸中</p>
+          <p className="mt-3 text-3xl font-bold text-indigo-400">
+            {summary.inTransitCount}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-700 bg-gray-900 p-6">
+          <p className="text-sm text-gray-400">已送達</p>
+          <p className="mt-3 text-3xl font-bold text-green-400">
+            {summary.deliveredCount}
+          </p>
+        </div>
+      </div>
+
+      {/* Phase 5: 財務對帳 */}
+      <div className="mb-2">
+        <h2 className="text-lg font-semibold text-gray-300">財務對帳</h2>
+      </div>
+      <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-gray-700 bg-gray-900 p-6">
+          <p className="text-sm text-gray-400">逾期發票數</p>
+          <p className="mt-3 text-3xl font-bold text-red-400">
+            {summary.overdueInvoiceCount}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-700 bg-gray-900 p-6">
+          <p className="text-sm text-gray-400">待收款金額</p>
+          <p className="mt-3 text-3xl font-bold text-yellow-400">
+            {summary.pendingInvoiceAmount.toLocaleString()}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-gray-700 bg-gray-900 p-6">
+          <p className="text-sm text-gray-400">已收款金額</p>
+          <p className="mt-3 text-3xl font-bold text-green-400">
+            {summary.paidInvoiceAmount.toLocaleString()}
+          </p>
+        </div>
+      </div>
+
       <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
   <div className="rounded-xl border border-gray-700 bg-gray-900 p-6">
     <p className="text-sm text-gray-400">
